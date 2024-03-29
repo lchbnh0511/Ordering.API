@@ -25,7 +25,7 @@ namespace Ordering.API.Controllers
         public IActionResult GetCategories()
         {
             var items = _databaseService.GetCategories();
-            
+
             return Ok(items);
         }
 
@@ -45,7 +45,7 @@ namespace Ordering.API.Controllers
         public IActionResult GetProducts(int productID)
         {
             var item = _databaseService.GetProductByID(productID);
-            if(item is null)
+            if (item is null)
             {
                 return NotFound();
             }
@@ -58,7 +58,7 @@ namespace Ordering.API.Controllers
         public IActionResult GetProductsByCategory(int categoryID)
         {
             var items = _databaseService.GetProducts(categoryID);
-           
+
 
             return Ok(items);
         }
@@ -134,5 +134,36 @@ namespace Ordering.API.Controllers
 
             return BadRequest(ModelState);
         }
+
+        [HttpPost]
+        [Route("create-order")]
+        public IActionResult CreateOrder([FromBody] CreateOrderRequestModel orderRequest)
+        {
+            if (ModelState.IsValid)
+            {
+                // insert customer
+                var customerID = _databaseService.InsertCustomer(orderRequest.Customer);
+                // insert order
+                var orderID = _databaseService.InsertOrder(customerID, orderRequest.Order);
+                // insert order detail
+                foreach (var product in orderRequest.Products)
+                {
+                    var productInDatabase = _databaseService.GetProductByID(product.ProductID);
+
+                    if (productInDatabase != null)
+                    {
+                        _databaseService.InsertOrderDetail(orderID,
+                            product.ProductID,
+                            product.Quantity,
+                            productInDatabase.UnitPrice);
+                    }
+                }
+
+                return Ok(new { orderID = orderID });
+            }
+
+            return BadRequest();
+        }
+
     }
 }

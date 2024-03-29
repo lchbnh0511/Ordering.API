@@ -13,13 +13,16 @@ public interface IDatabaseService
     ProductDto? GetProductByID(int productID);
     List<ProductDto> GetProducts(int categoryID);
     int Add(CategoryRequestModel requestModel);
-    int Update(int categoryID, CategoryRequestModel requestModel);
+    
     CategoryDto? GetCategoryByID(int categoryID);
     int DeleteCategory(int categoryID);
 
     //Create Orders 
     int InsertCustomer(CustomerRequestModel customerRequest);
-    
+    int InsertOrder(int customerId, OrderRequestModel orderRequest);
+    int InsertOrderDetail(int orderId, int productId, int quantity, decimal price);
+    int Update(int categoryID, CategoryRequestModel requestModel);
+
 }
 
 public class DatabaseService : IDatabaseService
@@ -50,29 +53,7 @@ public class DatabaseService : IDatabaseService
         return result;
     }
 
-    public int Update(int categoryID, CategoryRequestModel requestModel)
-    {
-        string sql = """
-            UPDATE Categories
-            SET 
-                CategoryName = @name,
-                Description = @description,
-                PictureUrl = @pictureUrl
-            WHERE CategoryID = @id
-            """;
-
-        using var connection = GetConnection();
-
-        var result = connection.Execute(sql, new
-        {
-            name = requestModel.CategoryName,
-            description = requestModel.Description,
-            pictureUrl = requestModel.PictureUrl,
-            id = categoryID
-        });
-
-        return result;
-    }
+    
 
     public int DeleteCategory(int categoryID)
     {
@@ -114,7 +95,7 @@ public class DatabaseService : IDatabaseService
 
         using var connection = GetConnection();
 
-        return connection.Query<ProductDto>(sql, new {productID}).FirstOrDefault();
+        return connection.Query<ProductDto>(sql, new { productID }).FirstOrDefault();
     }
     public CategoryDto? GetCategoryByID(int categoryID)
     {
@@ -181,10 +162,75 @@ public class DatabaseService : IDatabaseService
             customerRequest.City
         });
     }
+
+    public int InsertOrder(int customerID, OrderRequestModel orderRequest)
+    {
+        string sql = """
+            INSERT INTO Orders(CustomerID,OrderDate,ShipAddress,ShipCity)
+            VALUES (@customerID, @orderDate, @ShipAddress, @ShipCity)
+
+            SELECT SCOPE_IDENTITY();
+            """;
+
+        using var connection = GetConnection();
+
+        return connection.ExecuteScalar<int>(sql, new
+        {
+            orderRequest.ShipAddress,
+            orderRequest.ShipCity,
+            customerID,
+            orderDate = DateTime.Now
+        });
+    }
+
+    public int InsertOrderDetail(int orderID, int productID, int quantity, decimal price)
+    {
+        string sql = """
+            INSERT INTO OrderDetails(OrderID,ProductID,Quantity,UnitPrice,DiscountPercentage)
+            VALUES (@orderID, @productID, @quantity, @price, 0)
+
+            SELECT SCOPE_IDENTITY();
+            """;
+
+        using var connection = GetConnection();
+
+        return connection.ExecuteScalar<int>(sql, new
+        {
+            orderID,
+            productID,
+            price,
+            quantity
+        });
+    }
+
+    public int Update(int categoryID, CategoryRequestModel requestModel)
+    {
+        string sql = """
+            UPDATE Categories
+            SET 
+                CategoryName = @name,
+                Description = @description,
+                PictureUrl = @pictureUrl
+            WHERE CategoryID = @id
+            """;
+
+        using var connection = GetConnection();
+
+        var result = connection.Execute(sql, new
+        {
+            name = requestModel.CategoryName,
+            description = requestModel.Description,
+            pictureUrl = requestModel.PictureUrl,
+            id = categoryID
+        });
+
+        return result;
+    }
+
     private SqlConnection GetConnection()
     {
         return new SqlConnection(_connectionString);
     }
 
-   
+
 }

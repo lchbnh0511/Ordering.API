@@ -9,6 +9,6 @@ namespace Ordering.API.Models.RequestModels
         public string? CategoryName { get; set; }
         public string? Description { get; set; }
         [StringLength(2048)]
-        public string? PictureUrl { get; set;}
+        public string? PictureUrl { get; set; }
     }
 }
